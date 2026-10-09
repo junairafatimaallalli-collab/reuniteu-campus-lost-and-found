@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReuniteU - Campus Lost & Found System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        .card-hover {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.15);
+        }
+        /* Custom scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-full flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Global Notification Container -->
+    <div id="toast-container" class="fixed top-20 right-5 z-50 flex flex-col gap-3 max-w-sm pointer-events-none"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 glass-nav border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                        <i class="fa-solid me-0 fa-compass-drafting text-xl"></i>
+                        <i class="fa-solid fa-hands-holding-child text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-brand-700 via-indigo-700 to-slate-900 bg-clip-text text-transparent">ReuniteU</span>
+                        <span class="hidden sm:inline-block text-[10px] uppercase tracking-wider font-bold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-100 ml-1">Campus Portal</span>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation Links -->
+                <nav class="hidden lg:flex items-center space-x-1 font-medium text-sm text-slate-600">
+                    <button onclick="navigateTo('home')" class="nav-btn px-3 py-2 rounded-lg hover:text-brand-600 hover:bg-slate-100 transition-colors" id="nav-home">Home</button>
+                    <button onclick="navigateTo('lost')" class="nav-btn px-3 py-2 rounded-lg hover:text-brand-600 hover:bg-slate-100 transition-colors" id="nav-lost">Lost Items</button>
+                    <button onclick="navigateTo('found')" class="nav-btn px-3 py-2 rounded-lg hover:text-brand-600 hover:bg-slate-100 transition-colors" id="nav-found">Found Items</button>
+                    <button onclick="navigateTo('report-lost')" class="nav-btn px-3 py-2 rounded-lg text-amber-700 hover:bg-amber-50 font-semibold transition-colors" id="nav-report-lost"><i class="fa-solid fa-circle-plus mr-1 text-amber-500"></i> Report Lost</button>
+                    <button onclick="navigateTo('report-found')" class="nav-btn px-3 py-2 rounded-lg text-emerald-700 hover:bg-emerald-50 font-semibold transition-colors" id="nav-report-found"><i class="fa-solid fa-circle-plus mr-1 text-emerald-500"></i> Found Something</button>
+                    <button onclick="navigateTo('dashboard')" class="nav-btn px-3 py-2 rounded-lg hover:text-brand-600 hover:bg-slate-100 transition-colors" id="nav-dashboard"><i class="fa-solid fa-gauge-high mr-1 text-slate-400"></i> My Dashboard</button>
+                    <button onclick="navigateTo('admin')" class="nav-btn px-3 py-2 rounded-lg text-purple-700 hover:bg-purple-50 font-semibold transition-colors" id="nav-admin"><i class="fa-solid fa-user-shield mr-1 text-purple-500"></i> Admin</button>
+                </nav>
+
+                <!-- Right Action Buttons & Auth -->
+                <div class="flex items-center space-x-3">
+                    <!-- Notifications Dropdown Trigger -->
+                    <div class="relative">
+                        <button onclick="toggleNotifications()" class="relative p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none">
+                            <i class="fa-regular fa-bell text-lg"></i>
+                            <span id="notif-badge" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white"></span>
+                        </button>
+
+                        <!-- Notification Dropdown Menu -->
+                        <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Notifications</h4>
+                                <span class="text-xs text-brand-600 hover:underline cursor-pointer" onclick="clearNotifs()">Clear All</span>
+                            </div>
+                            <div id="notif-list" class="max-h-64 overflow-y-auto divide-y divide-slate-100 text-sm text-slate-600">
+                                <!-- Dynamic notifications load here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auth Button / Profile -->
+                    <div id="auth-btn-container">
+                        <button onclick="openAuthModal('login')" class="bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-4 py-2 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-1.5">
+                            <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                            <span>Login / Register</span>
+                        </button>
+                    </div>
+
+                    <!-- Mobile Navigation Menu Toggle -->
+                    <button onclick="toggleMobileMenu()" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-slate-200 bg-white px-4 pt-2 pb-4 space-y-1 shadow-lg">
+            <button onclick="navigateTo('home'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-slate-700 font-medium hover:bg-slate-100">Home</button>
+            <button onclick="navigateTo('lost'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-slate-700 font-medium hover:bg-slate-100">Lost Items</button>
+            <button onclick="navigateTo('found'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-slate-700 font-medium hover:bg-slate-100">Found Items</button>
+            <button onclick="navigateTo('report-lost'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-amber-700 font-semibold hover:bg-amber-50"><i class="fa-solid fa-circle-plus mr-2 text-amber-500"></i> Report Lost Item</button>
+            <button onclick="navigateTo('report-found'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-emerald-700 font-semibold hover:bg-emerald-50"><i class="fa-solid fa-circle-plus mr-2 text-emerald-500"></i> Report Found Item</button>
+            <button onclick="navigateTo('dashboard'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-slate-700 font-medium hover:bg-slate-100"><i class="fa-solid fa-gauge-high mr-2 text-slate-400"></i> My Dashboard</button>
+            <button onclick="navigateTo('admin'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-purple-700 font-semibold hover:bg-purple-50"><i class="fa-solid fa-user-shield mr-2 text-purple-500"></i> Admin Panel</button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow">
+
+        <!-- ================= PAGE 1: HOME PAGE ================= -->
+        <section id="page-home" class="view-page">
+            <!-- Hero Banner -->
+            <div class="relative overflow-hidden bg-gradient-to-b from-brand-50 via-slate-50 to-white py-12 lg:py-20 border-b border-slate-200/60">
+                <div class="absolute inset-0 z-0 opacity-30 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold tracking-wide uppercase mb-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span> Safe & Verified Campus Reunions
+                    </span>
+                    <h1 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight max-w-4xl mx-auto leading-tight">
+                        Lost Something on Campus? <br class="hidden sm:inline"><span class="bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">We'll Help You Get It Back.</span>
+                    </h1>
+                    <p class="mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                        ReuniteU is the central lost and found network for students and staff. Report items, search cataloged discoveries, and securely verify ownership.
+                    </p>
+
+                    <!-- Central Quick Search & Filter Bar -->
+                    <div class="mt-8 max-w-3xl mx-auto bg-white p-2.5 sm:p-3 rounded-2xl shadow-xl border border-slate-200/80 flex flex-col sm:flex-row gap-2">
+                        <div class="flex-grow flex items-center gap-2 px-3 bg-slate-50 rounded-xl border border-slate-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100 transition-all">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                            <input type="text" id="hero-search-input" placeholder="Search wallet, student ID, keys, laptop..." class="w-full py-2.5 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none">
+                        </div>
+                        <select id="hero-category-select" class="px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none focus:border-brand-500">
+                            <option value="">All Categories</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="ID Cards">ID Cards</option>
+                            <option value="Books">Books</option>
+                            <option value="Bags">Bags</option>
+                            <option value="Keys">Keys</option>
+                            <option value="Accessories">Accessories</option>
+                        </select>
+                        <button onclick="executeHeroSearch()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-md shadow-brand-500/20 text-sm flex items-center justify-center gap-2">
+                            <span>Search</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- CTA Action Pills -->
+                    <div class="mt-6 flex flex-wrap justify-center gap-4 text-sm font-semibold">
+                        <button onclick="navigateTo('report-lost')" class="px-5 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100 transition-colors flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-circle-exclamation text-amber-600"></i> I Lost Something
+                        </button>
+                        <button onclick="navigateTo('report-found')" class="px-5 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-emerald-100 transition-colors flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-hand-holding-heart text-emerald-600"></i> I Found Something
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-Time Statistics Counter Bar -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 p-4 sm:p-6">
+                    <div class="flex items-center justify-center gap-4 py-2 sm:py-0">
+                        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">
+                            <i class="fa-solid fa-box-archive"></i>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black text-slate-900" id="stat-reported">154</div>
+                            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Items Reported</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center gap-4 py-2 sm:py-0">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                            <i class="fa-solid fa-hands-holding-circle"></i>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black text-slate-900" id="stat-reunited">98</div>
+                            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Items Reunited</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center gap-4 py-2 sm:py-0">
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-brand-600 flex items-center justify-center text-xl font-bold">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black text-slate-900" id="stat-waiting">56</div>
+                            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Currently Waiting</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Pills Bar -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-brand-600"></i> Explore Categories
+                    </h2>
+                    <span class="text-xs font-semibold text-slate-500">Filter quickly by type</span>
+                </div>
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="home-category-pills">
+                    <!-- Dynamic categories injected by JS -->
+                </div>
+            </div>
+
+            <!-- Recent Lost & Found Grid Section -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Recent Reported Items</h2>
+                        <p class="text-slate-500 text-sm">Browse latest lost and found submissions across campus</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="navigateTo('lost')" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                            View All Lost (<span id="count-lost-badge">0</span>)
+                        </button>
+                        <button onclick="navigateTo('found')" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                            View All Found (<span id="count-found-badge">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Item Cards Grid -->
+                <div id="home-items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Dynamic Card Rendering -->
+                </div>
+            </div>
+
+            <!-- How It Works Section -->
+            <div class="bg-slate-100/70 border-y border-slate-200/80 py-16 mt-8">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center max-w-2xl mx-auto mb-12">
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">How ReuniteU Works</h2>
+                        <p class="text-slate-600 mt-2 text-sm">A simple, secure 5-step process designed to return belongings to their rightful owners efficiently.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
+                        <!-- Step 1 -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 text-center relative card-hover">
+                            <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-600 font-bold flex items-center justify-center mx-auto mb-3">1</div>
+                            <h3 class="font-bold text-slate-900 text-base mb-1">Report</h3>
+                            <p class="text-xs text-slate-500">Post details of a lost item or something you found on campus.</p>
+                        </div>
+                        <!-- Step 2 -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 text-center relative card-hover">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center mx-auto mb-3">2</div>
+                            <h3 class="font-bold text-slate-900 text-base mb-1">Search</h3>
+                            <p class="text-xs text-slate-500">Browse live catalog with smart keyword & location filters.</p>
+                        </div>
+                        <!-- Step 3 -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 text-center relative card-hover">
+                            <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 font-bold flex items-center justify-center mx-auto mb-3">3</div>
+                            <h3 class="font-bold text-slate-900 text-base mb-1">Claim</h3>
+                            <p class="text-xs text-slate-500">Click "This is Mine" on matched listings to initiate verification.</p>
+                        </div>
+                        <!-- Step 4 -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 text-center relative card-hover">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-bold flex items-center justify-center mx-auto mb-3">4</div>
+                            <h3 class="font-bold text-slate-900 text-base mb-1">Verify</h3>
+                            <p class="text-xs text-slate-500">Answer dynamic security questions to prove actual ownership.</p>
+                        </div>
+                        <!-- Step 5 -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 text-center relative card-hover">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 font-bold flex items-center justify-center mx-auto mb-3">5</div>
+                            <h3 class="font-bold text-slate-900 text-base mb-1">Reunite</h3>
+                            <p class="text-xs text-slate-500">Coordinate pickup at campus security hub and mark reunited.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 2: LOST ITEMS CATALOG ================= -->
+        <section id="page-lost" class="view-page hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-6">
+                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full uppercase tracking-wider border border-amber-200">Lost Items Directory</span>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Reported Lost Belongings</h1>
+                <p class="text-slate-500 text-sm mt-1">If you found any of these items, please contact the owner or hand it to campus safety.</p>
+            </div>
+
+            <!-- Search & Filters Container -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-8 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <!-- Keyword search -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Search Keywords</label>
+                        <div class="flex items-center px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2"></i>
+                            <input type="text" id="lost-filter-search" oninput="applyFilters('lost')" placeholder="Item name, brand..." class="bg-transparent w-full focus:outline-none">
+                        </div>
+                    </div>
+                    <!-- Category Filter -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Category</label>
+                        <select id="lost-filter-category" onchange="applyFilters('lost')" class="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <!-- Location Filter -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Campus Area</label>
+                        <select id="lost-filter-location" onchange="applyFilters('lost')" class="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none">
+                            <option value="">All Locations</option>
+                            <option value="Library">Library Main Block</option>
+                            <option value="Canteen">Central Canteen</option>
+                            <option value="Block A">Academic Block A</option>
+                            <option value="Block B">Academic Block B</option>
+                            <option value="Sports Complex">Sports Complex</option>
+                            <option value="Auditorium">Main Auditorium</option>
+                        </select>
+                    </div>
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Status</label>
+                        <select id="lost-filter-status" onchange="applyFilters('lost')" class="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none">
+                            <option value="">All Statuses</option>
+                            <option value="REPORTED">Reported / Searching</option>
+                            <option value="CLAIMED">Claim Under Review</option>
+                            <option value="REUNITED">Reunited</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="lost-items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Items populated by JS -->
+            </div>
+        </section>
+
+        <!-- ================= PAGE 3: FOUND ITEMS CATALOG ================= -->
+        <section id="page-found" class="view-page hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-6">
+                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-wider border border-emerald-200">Found Items Catalog</span>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">Discovered Belongings</h1>
+                <p class="text-slate-500 text-sm mt-1">If one of these belongs to you, click "This is Mine" to submit a verification request.</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-8 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Search Keywords</label>
+                        <div class="flex items-center px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2"></i>
+                            <input type="text" id="found-filter-search" oninput="applyFilters('found')" placeholder="Item name, description..." class="bg-transparent w-full focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Category</label>
+                        <select id="found-filter-category" onchange="applyFilters('found')" class="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Campus Area</label>
+                        <select id="found-filter-location" onchange="applyFilters('found')" class="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none">
+                            <option value="">All Locations</option>
+                            <option value="Library">Library Main Block</option>
+                            <option value="Canteen">Central Canteen</option>
+                            <option value="Block A">Academic Block A</option>
+                            <option value="Block B">Academic Block B</option>
+                            <option value="Sports Complex">Sports Complex</option>
+                            <option value="Auditorium">Main Auditorium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Status</label>
+                        <select id="found-filter-status" onchange="applyFilters('found')" class="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:outline-none">
+                            <option value="">All Statuses</option>
+                            <option value="REPORTED">Available to Claim</option>
+                            <option value="CLAIMED">Claim Pending</option>
+                            <option value="REUNITED">Reunited</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="found-items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Items populated by JS -->
+            </div>
+        </section>
+
+        <!-- ================= PAGE 4: REPORT LOST ITEM FORM ================= -->
+        <section id="page-report-lost" class="view-page hidden py-10 max-w-3xl mx-auto px-4 sm:px-6">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="bg-amber-500 p-6 text-white">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-clipboard-question"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">Report a Lost Item</h1>
+                            <p class="text-amber-100 text-sm">Provide details so campus members can identify your lost property.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form-report-lost" onsubmit="handleReportSubmit(event, 'LOST')" class="p-6 sm:p-8 space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Item Title <span class="text-rose-500">*</span></label>
+                            <input type="text" required placeholder="e.g. Black Leather Wallet" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Category <span class="text-rose-500">*</span></label>
+                            <select required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                                <option value="">Select Category</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="ID Cards">ID Cards</option>
+                                <option value="Books">Books</option>
+                                <option value="Bags">Bags</option>
+                                <option value="Keys">Keys</option>
+                                <option value="Accessories">Accessories</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Approximate Location <span class="text-rose-500">*</span></label>
+                            <input type="text" required placeholder="e.g. Library 2nd Floor / Block A Canteen" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Date Lost <span class="text-rose-500">*</span></label>
+                            <input type="date" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Time Lost</label>
+                            <input type="time" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Primary Color</label>
+                            <input type="text" placeholder="e.g. Black / Navy Blue" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Brand / Model</label>
+                            <input type="text" placeholder="e.g. Dell / Fossil / Apple" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Public Description <span class="text-rose-500">*</span></label>
+                        <textarea required rows="3" placeholder="Describe the item general appearance, where you think it went missing..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Unique Identifying Details (Private for Verification)</label>
+                        <input type="text" placeholder="e.g. Scratch on back cover, initial 'J' inside tag, blue keychain attached" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm">
+                        <p class="text-xs text-slate-400 mt-1">This detail will be hidden publicly and used to verify claim responses.</p>
+                    </div>
+
+                    <!-- Image Upload Simulator -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Item Image (Optional)</label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:bg-slate-50 cursor-pointer transition-colors" onclick="document.getElementById('lost-img-input').click()">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-1"></i>
+                            <div class="text-xs text-slate-600 font-medium">Click to upload photo or drag file</div>
+                            <input type="file" id="lost-img-input" accept="image/*" class="hidden" onchange="handleImagePreview(this, 'lost-img-preview')">
+                        </div>
+                        <div id="lost-img-preview" class="mt-2 hidden flex items-center gap-2 bg-slate-100 p-2 rounded-lg text-xs"></div>
+                    </div>
+
+                    <!-- Contact details -->
+                    <div class="border-t border-slate-200 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Contact Name</label>
+                            <input type="text" id="lost-contact-name" value="Junaira" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Phone Number</label>
+                            <input type="tel" id="lost-contact-phone" value="+1 (555) 019-2834" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-sm">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-amber-500/20 text-base">
+                        Submit Lost Report
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 5: REPORT FOUND ITEM FORM ================= -->
+        <section id="page-report-found" class="view-page hidden py-10 max-w-3xl mx-auto px-4 sm:px-6">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="bg-emerald-600 p-6 text-white">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-hand-holding-heart"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">Report a Found Item</h1>
+                            <p class="text-emerald-100 text-sm">Help return a found item to its rightful student owner.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form-report-found" onsubmit="handleReportSubmit(event, 'FOUND')" class="p-6 sm:p-8 space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Item Title <span class="text-rose-500">*</span></label>
+                            <input type="text" required placeholder="e.g. Apple AirPods Pro Case" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Category <span class="text-rose-500">*</span></label>
+                            <select required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                                <option value="">Select Category</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="ID Cards">ID Cards</option>
+                                <option value="Books">Books</option>
+                                <option value="Bags">Bags</option>
+                                <option value="Keys">Keys</option>
+                                <option value="Accessories">Accessories</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Found Location <span class="text-rose-500">*</span></label>
+                            <input type="text" required placeholder="e.g. Bench outside Canteen" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Where is it kept now? <span class="text-rose-500">*</span></label>
+                            <input type="text" required placeholder="e.g. Deposited at Library Security Desk" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Date Found <span class="text-rose-500">*</span></label>
+                            <input type="date" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Primary Color</label>
+                            <input type="text" placeholder="e.g. White / Silver" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Brand / Specs</label>
+                            <input type="text" placeholder="e.g. Apple" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Public Description <span class="text-rose-500">*</span></label>
+                        <textarea required rows="3" placeholder="Provide general exterior details without revealing sensitive contents..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm"></textarea>
+                    </div>
+
+                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                        <label class="block text-sm font-bold text-amber-900 mb-1"><i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i> Private Verification Questions / Hidden Details</label>
+                        <input type="text" placeholder="e.g. What is written inside? What wallpaper is set? Name on card inside?" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm mt-1">
+                        <p class="text-xs text-amber-700 mt-1">The system will prompt claimants to answer this so you or administrators can verify true ownership.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Photograph</label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:bg-slate-50 cursor-pointer transition-colors" onclick="document.getElementById('found-img-input').click()">
+                            <i class="fa-solid fa-camera text-2xl text-slate-400 mb-1"></i>
+                            <div class="text-xs text-slate-600 font-medium">Click to upload photo</div>
+                            <input type="file" id="found-img-input" accept="image/*" class="hidden" onchange="handleImagePreview(this, 'found-img-preview')">
+                        </div>
+                        <div id="found-img-preview" class="mt-2 hidden flex items-center gap-2 bg-slate-100 p-2 rounded-lg text-xs"></div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-emerald-600/20 text-base">
+                        Submit Found Item
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 6: USER DASHBOARD ================= -->
+        <section id="page-dashboard" class="view-page hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- User Welcome Banner -->
+            <div class="bg-gradient-to-r from-brand-700 to-indigo-800 rounded-2xl p-6 sm:p-8 text-white shadow-xl mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center text-2xl font-bold">
+                        J
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold">Welcome back, Junaira 👋</h1>
+                        <p class="text-brand-100 text-sm mt-0.5">Student ID: <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-xs">CS202488</span> | Computer Science Dept</p>
+                    </div>
+                </div>
+                <button onclick="navigateTo('report-lost')" class="bg-white text-brand-700 hover:bg-brand-50 font-bold px-4 py-2.5 rounded-xl transition-all text-sm shadow-md">
+                    + Report New Item
+                </button>
+            </div>
+
+            <!-- Dashboard Metric Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">My Lost Reports</div>
+                    <div class="text-3xl font-black text-slate-900" id="dash-my-lost">2</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">My Found Reports</div>
+                    <div class="text-3xl font-black text-slate-900" id="dash-my-found">1</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Claims Filed</div>
+                    <div class="text-3xl font-black text-slate-900" id="dash-my-claims">2</div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Items Reunited</div>
+                    <div class="text-3xl font-black text-emerald-600" id="dash-my-reunited">1</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Submissions List -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center justify-between">
+                            <span>My Submissions & Activity</span>
+                            <span class="text-xs font-normal text-slate-500">Live Status</span>
+                        </h3>
+                        <div id="user-activity-list" class="space-y-4">
+                            <!-- Dynamic items list injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar Notifications & Claims -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4">My Submitted Claims</h3>
+                        <div id="user-claims-list" class="space-y-3">
+                            <!-- Dynamic claims injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 7: ADMIN DASHBOARD ================= -->
+        <section id="page-admin" class="view-page hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <span class="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full uppercase tracking-wider">Administrator Mode</span>
+                    <h1 class="text-3xl font-extrabold text-slate-900 mt-1">Campus System Control Panel</h1>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="seedSampleData()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-semibold">Reset / Seed Sample Data</button>
+                </div>
+            </div>
+
+            <!-- Admin Key Stats -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Total Users</div>
+                    <div class="text-2xl font-black text-slate-900">248</div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Lost Reports</div>
+                    <div class="text-2xl font-black text-amber-600" id="admin-stat-lost">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Found Reports</div>
+                    <div class="text-2xl font-black text-emerald-600" id="admin-stat-found">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Reunited</div>
+                    <div class="text-2xl font-black text-indigo-600" id="admin-stat-reunited">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-2 sm:col-span-1">
+                    <div class="text-slate-400 text-xs font-bold uppercase">Pending Claims</div>
+                    <div class="text-2xl font-black text-rose-600" id="admin-stat-claims">0</div>
+                </div>
+            </div>
+
+            <!-- Admin Claims Queue -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+                <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check text-purple-600"></i> Verification Claims Queue
+                </h3>
+                <div id="admin-claims-container" class="space-y-4">
+                    <!-- Dynamic claim reviews -->
+                </div>
+            </div>
+
+            <!-- Admin Reports Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-slate-900">All Reported Items Directory</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs font-bold uppercase text-slate-500 border-b border-slate-100">
+                            <tr>
+                                <th class="p-4">Item Details</th>
+                                <th class="p-4">Type</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Location</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-table-body" class="divide-y divide-slate-100">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= ITEM DETAILS MODAL ================= -->
+    <div id="modal-details" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-100 relative animate-in fade-in zoom-in-95 duration-200">
+            <button onclick="closeModal('modal-details')" class="absolute top-4 right-4 z-10 w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-600 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div id="modal-details-content">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CLAIM VERIFICATION MODAL ================= -->
+    <div id="modal-claim" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+            <div class="bg-brand-600 p-6 text-white relative">
+                <button onclick="closeModal('modal-claim')" class="absolute top-4 right-4 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved"></i> File Ownership Claim
+                </h3>
+                <p class="text-brand-100 text-xs mt-1">Answer private questions so the founder/admin can verify you are the true owner.</p>
+            </div>
+
+            <form id="form-claim-submit" onsubmit="handleClaimSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="claim-item-id">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
+                    <span class="font-bold text-slate-800" id="claim-item-title-display">Item Name</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Question 1: What was inside or attached to the item?</label>
+                    <textarea required id="claim-q1" rows="2" placeholder="List wallet contents, key tags, distinct scratches..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Question 2: What color or branding is in the inner sections?</label>
+                    <input type="text" required id="claim-q2" placeholder="Specify unique marks, serial code snippet, inner lining color" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Proof Photo / Student ID Copy (Optional URL or Note)</label>
+                    <input type="text" id="claim-proof" placeholder="Provide any receipt or proof URL if available" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i> Submitting false claims will result in campus disciplinary review.
+                </div>
+
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-brand-500/20 text-sm">
+                    Submit Ownership Claim
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= AUTH MODAL ================= -->
+    <div id="modal-auth" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden relative">
+            <button onclick="closeModal('modal-auth')" class="absolute top-4 right-4 z-10 w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-600">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Auth Tabs -->
+            <div class="flex border-b border-slate-200">
+                <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-4 font-bold text-sm text-center border-b-2 border-brand-600 text-brand-600">Student Login</button>
+                <button onclick="switchAuthTab('register')" id="tab-register" class="flex-1 py-4 font-bold text-sm text-center border-b-2 border-transparent text-slate-400">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-login" onsubmit="handleAuthLogin(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Campus Email / Student ID</label>
+                    <input type="text" required value="junaira@college.edu" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+                    <input type="password" required value="••••••••" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl transition-all shadow-md text-sm">
+                    Log In
+                </button>
+            </form>
+
+            <!-- Registration Form -->
+            <form id="form-register" onsubmit="handleAuthRegister(event)" class="p-6 space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
+                    <input type="text" required placeholder="Junaira Ahmed" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Student ID</label>
+                    <input type="text" required placeholder="CS202488" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">College Email</label>
+                    <input type="email" required placeholder="junaira@college.edu" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+                    <input type="password" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl transition-all shadow-md text-sm">
+                    Create Student Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="bg-slate-900 text-slate-400 text-sm py-12 mt-auto border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2 text-white font-extrabold text-lg">
+                    <i class="fa-solid fa-hands-holding-child text-brand-500"></i> ReuniteU
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    The official campus lost and found management platform. Dedicated to returning lost property safely and quickly.
+                </p>
+                <div class="text-xs text-slate-500">
+                    &copy; 2026 ReuniteU Campus Portal. All rights reserved.
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-3 text-xs uppercase tracking-wider">Quick Navigation</h4>
+                <ul class="space-y-2 text-xs">
+                    <li><a href="#" onclick="navigateTo('home')" class="hover:text-white transition-colors">Home Page</a></li>
+                    <li><a href="#" onclick="navigateTo('lost')" class="hover:text-white transition-colors">Lost Items Directory</a></li>
+                    <li><a href="#" onclick="navigateTo('found')" class="hover:text-white transition-colors">Found Items Catalog</a></li>
+                    <li><a href="#" onclick="navigateTo('report-lost')" class="hover:text-white transition-colors">Report a Lost Item</a></li>
+                    <li><a href="#" onclick="navigateTo('report-found')" class="hover:text-white transition-colors">Submit Found Item</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-3 text-xs uppercase tracking-wider">Campus Security Hub</h4>
+                <p class="text-xs text-slate-400 mb-2">Central Security Desk: Building B, Room 102</p>
+                <p class="text-xs text-slate-400 mb-2">Security Phone: +1 (555) 019-9900</p>
+                <p class="text-xs text-slate-400">Hours: Mon-Fri 8:00 AM - 8:00 PM</p>
+            </div>
+
+            <div>
+                <h4 class="text-white font-semibold mb-3 text-xs uppercase tracking-wider">Legal & Policy</h4>
+                <ul class="space-y-2 text-xs">
+                    <li><a href="#" onclick="showToast('Privacy Policy: All verification data is kept strictly confidential.', 'info')" class="hover:text-white">Privacy Policy</a></li>
+                    <li><a href="#" onclick="showToast('Terms: Unclaimed items after 90 days are donated to charity.', 'info')" class="hover:text-white">Terms of Service</a></li>
+                    <li><a href="#" onclick="showToast('Verification Guidelines: Proof of ownership required for pickup.', 'info')" class="hover:text-white">Verification Guidelines</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= JAVASCRIPT LOGIC ENGINE ================= -->
+    <script>
+        // --- 1. MOCK DATABASE INITIAL STATE ---
+        const INITIAL_CATEGORIES = [
+            { name: "Electronics", icon: "fa-laptop" },
+            { name: "ID Cards", icon: "fa-id-card" },
+            { name: "Books", icon: "fa-book" },
+            { name: "Bags", icon: "fa-bag-shopping" },
+            { name: "Keys", icon: "fa-key" },
+            { name: "Accessories", icon: "fa-glasses" },
+            { name: "Other", icon: "fa-box" }
+        ];
+
+        let state = {
+            currentUser: {
+                name: "Junaira",
+                email: "junaira@college.edu",
+                studentId: "CS202488",
+                role: "STUDENT"
+            },
+            notifications: [
+                { id: 1, text: "A possible match was found for your lost Leather Wallet!", time: "10 mins ago", read: false },
+                { id: 2, text: "Your claim for 'AirPods Case' is under review by admin.", time: "1 hour ago", read: false }
+            ],
+            items: [
+                {
+                    id: "item-101",
+                    type: "LOST",
+                    title: "Black Backpack",
+                    category: "Bags",
+                    location: "Library",
+                    date: "2026-10-08",
+                    time: "14:30",
+                    color: "Black",
+                    brand: "Herschel",
+                    description: "Black backpack with a small blue keychain. Contains notebooks.",
+                    uniqueDetails: "Blue keychain with 'J' initial tag inside front pocket.",
+                    storageLocation: "N/A",
+                    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80",
+                    reporterName: "Junaira",
+                    reporterPhone: "+1 (555) 019-2834",
+                    status: "REPORTED"
+                },
+                {
+                    id: "item-102",
+                    type: "FOUND",
+                    title: "College ID Card",
+                    category: "ID Cards",
+                    location: "Canteen",
+                    date: "2026-10-08",
+                    time: "11:15",
+                    color: "White/Blue",
+                    brand: "University",
+                    description: "Found student card near counter 2 in central canteen.",
+                    uniqueDetails: "Student ID ends with 2024",
+                    storageLocation: "Campus Security Desk (Room 102)",
+                    image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80",
+                    reporterName: "Sam Security",
+                    reporterPhone: "+1 (555) 019-9900",
+                    status: "REPORTED"
+                },
+                {
+                    id: "item-103",
+                    type: "FOUND",
+                    title: "AirPods Pro Case",
+                    category: "Electronics",
+                    location: "Sports Complex",
+                    date: "2026-10-07",
+                    time: "16:00",
+                    color: "White",
+                    brand: "Apple",
+                    description: "White wireless charging case found on basketball court bleachers.",
+                    uniqueDetails: "Small scratch on bottom left hinge.",
+                    storageLocation: "Gym Admin Office",
+                    image: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=600&q=80",
+                    reporterName: "Alex Gym",
+                    reporterPhone: "+1 (555) 019-4455",
+                    status: "CLAIMED"
+                },
+                {
+                    id: "item-104",
+                    type: "LOST",
+                    title: "Calculus Textbook",
+                    category: "Books",
+                    location: "Block A",
+                    date: "2026-10-06",
+                    time: "09:30",
+                    color: "Blue/Yellow",
+                    brand: "Pearson",
+                    description: "Stewart Calculus 8th Edition. Left in Room A-204.",
+                    uniqueDetails: "Name 'Junaira' written on inside cover in green ink.",
+                    storageLocation: "N/A",
+                    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80",
+                    reporterName: "Junaira",
+                    reporterPhone: "+1 (555) 019-2834",
+                    status: "REPORTED"
+                },
+                {
+                    id: "item-105",
+                    type: "FOUND",
+                    title: "Car Key Ring",
+                    category: "Keys",
+                    location: "Auditorium",
+                    date: "2026-10-05",
+                    time: "18:20",
+                    color: "Silver",
+                    brand: "Toyota",
+                    description: "Single Toyota fob with two house keys.",
+                    uniqueDetails: "Leather strap attached with small brass bell.",
+                    storageLocation: "Campus Security Desk",
+                    image: "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=600&q=80",
+                    reporterName: "Security Desk",
+                    reporterPhone: "+1 (555) 019-9900",
+                    status: "REUNITED"
+                }
+            ],
+            claims: [
+                {
+                    id: "claim-301",
+                    itemId: "item-103",
+                    claimantName: "Junaira",
+                    q1: "AirPods Pro inside. Left bud has small black rubber tip.",
+                    q2: "Small scratch on bottom left hinge near charger port.",
+                    proof: "Purchase receipt in Apple ID email",
+                    status: "PENDING",
+                    date: "2026-10-07"
+                }
+            ]
+        };
+
+        // --- 2. ROUTING & NAVIGATION ENGINE ---
+        function navigateTo(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.view-page').forEach(page => page.classList.add('hidden'));
+
+            // Show target page
+            const target = document.getElementById(`page-${pageId}`);
+            if (target) {
+                target.classList.remove('hidden');
+            }
+
+            // Update Active Nav Link CSS
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-100', 'text-brand-600', 'font-bold');
+            });
+            const activeNav = document.getElementById(`nav-${pageId}`);
+            if (activeNav && !pageId.includes('report') && pageId !== 'admin') {
+                activeNav.classList.add('bg-slate-100', 'text-brand-600', 'font-bold');
+            }
+
+            // Scroll top smooth
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Re-render data for page context
+            if (pageId === 'home') renderHomePage();
+            if (pageId === 'lost') renderLostPage();
+            if (pageId === 'found') renderFoundPage();
+            if (pageId === 'dashboard') renderDashboardPage();
+            if (pageId === 'admin') renderAdminPage();
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // --- 3. TOAST & NOTIFICATION SYSTEM ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-brand-600';
+            const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info';
+
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium pointer-events-auto transition-all transform translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function toggleNotifications() {
+            const drop = document.getElementById('notif-dropdown');
+            drop.classList.toggle('hidden');
+            renderNotifications();
+        }
+
+        function renderNotifications() {
+            const list = document.getElementById('notif-list');
+            const badge = document.getElementById('notif-badge');
+            
+            if (state.notifications.length === 0) {
+                list.innerHTML = `<div class="p-4 text-center text-slate-400 text-xs">No notifications right now</div>`;
+                badge.classList.add('hidden');
+                return;
+            }
+
+            badge.classList.remove('hidden');
+            list.innerHTML = state.notifications.map(n => `
+                <div class="p-3 hover:bg-slate-50 transition-colors">
+                    <p class="text-xs text-slate-700 font-medium">${n.text}</p>
+                    <span class="text-[10px] text-slate-400 mt-1 block">${n.time}</span>
+                </div>
+            `).join('');
+        }
+
+        function clearNotifs() {
+            state.notifications = [];
+            renderNotifications();
+        }
+
+        // --- 4. RENDERERS & CARD GENERATOR ---
+        function createItemCardHTML(item) {
+            const isLost = item.type === 'LOST';
+            const badgeBg = isLost ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            const typeLabel = isLost ? 'LOST' : 'FOUND';
+
+            let statusBadge = '';
+            if (item.status === 'REUNITED') {
+                statusBadge = `<span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded border border-indigo-200 uppercase">REUNITED</span>`;
+            } else if (item.status === 'CLAIMED') {
+                statusBadge = `<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200 uppercase">CLAIM PENDING</span>`;
+            } else {
+                statusBadge = `<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 uppercase">AVAILABLE</span>`;
+            }
+
+            return `
+                <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm card-hover flex flex-col h-full">
+                    <div class="relative h-44 bg-slate-100 overflow-hidden">
+                        <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x400/e2e8f0/475569?text=No+Image+Available'">
+                        <div class="absolute top-3 left-3 flex gap-1.5">
+                            <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-full border shadow-sm ${badgeBg}">${typeLabel}</span>
+                        </div>
+                        <div class="absolute top-3 right-3">
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 flex-grow flex flex-col justify-between">
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">${item.category}</div>
+                            <h3 class="font-bold text-slate-900 text-base line-clamp-1 mb-2">${item.title}</h3>
+                            <p class="text-xs text-slate-500 line-clamp-2 mb-4">${item.description}</p>
+                        </div>
+
+                        <div class="space-y-1.5 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-location-dot text-rose-500 w-4 text-center"></i>
+                                <span class="truncate font-medium">${item.location}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fa-regular fa-calendar text-brand-500 w-4 text-center"></i>
+                                <span>${item.date}</span>
+                            </div>
+                        </div>
+
+                        <button onclick="openItemDetails('${item.id}')" class="mt-4 w-full bg-slate-100 hover:bg-brand-600 hover:text-white text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                            <span>View Details</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHomePage() {
+            // Update Stats
+            const reported = state.items.length;
+            const reunited = state.items.filter(i => i.status === 'REUNITED').length;
+            const waiting = reported - reunited;
+
+            document.getElementById('stat-reported').textContent = reported;
+            document.getElementById('stat-reunited').textContent = reunited;
+            document.getElementById('stat-waiting').textContent = waiting;
+
+            document.getElementById('count-lost-badge').textContent = state.items.filter(i => i.type === 'LOST').length;
+            document.getElementById('count-found-badge').textContent = state.items.filter(i => i.type === 'FOUND').length;
+
+            // Render Category Pills
+            const pillsContainer = document.getElementById('home-category-pills');
+            pillsContainer.innerHTML = INITIAL_CATEGORIES.map(cat => `
+                <button onclick="filterByCategoryHome('${cat.name}')" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-50 hover:text-brand-600 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 whitespace-nowrap transition-all shadow-sm">
+                    <i class="fa-solid ${cat.icon} text-brand-500"></i>
+                    <span>${cat.name}</span>
+                </button>
+            `).join('');
+
+            // Render Recent Items (First 4)
+            const grid = document.getElementById('home-items-grid');
+            grid.innerHTML = state.items.slice(0, 8).map(createItemCardHTML).join('');
+        }
+
+        function executeHeroSearch() {
+            const query = document.getElementById('hero-search-input').value.toLowerCase();
+            const cat = document.getElementById('hero-category-select').value;
+
+            navigateTo('lost');
+            document.getElementById('lost-filter-search').value = query;
+            if (cat) document.getElementById('lost-filter-category').value = cat;
+            applyFilters('lost');
+        }
+
+        function filterByCategoryHome(categoryName) {
+            navigateTo('lost');
+            document.getElementById('lost-filter-category').value = categoryName;
+            applyFilters('lost');
+        }
+
+        function populateCategoryDropdowns() {
+            const lostSelect = document.getElementById('lost-filter-category');
+            const foundSelect = document.getElementById('found-filter-category');
+
+            const optionsHTML = '<option value="">All Categories</option>' + 
+                INITIAL_CATEGORIES.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
+            if (lostSelect) lostSelect.innerHTML = optionsHTML;
+            if (foundSelect) foundSelect.innerHTML = optionsHTML;
+        }
+
+        function renderLostPage() {
+            populateCategoryDropdowns();
+            applyFilters('lost');
+        }
+
+        function renderFoundPage() {
+            populateCategoryDropdowns();
+            applyFilters('found');
+        }
+
+        function applyFilters(type) {
+            const searchVal = document.getElementById(`${type}-filter-search`)?.value.toLowerCase() || '';
+            const catVal = document.getElementById(`${type}-filter-category`)?.value || '';
+            const locVal = document.getElementById(`${type}-filter-location`)?.value || '';
+            const statusVal = document.getElementById(`${type}-filter-status`)?.value || '';
+
+            const targetType = type.toUpperCase();
+            const filtered = state.items.filter(item => {
+                if (item.type !== targetType) return false;
+                if (searchVal && !item.title.toLowerCase().includes(searchVal) && !item.description.toLowerCase().includes(searchVal)) return false;
+                if (catVal && item.category !== catVal) return false;
+                if (locVal && !item.location.includes(locVal)) return false;
+                if (statusVal && item.status !== statusVal) return false;
+                return true;
+            });
+
+            const grid = document.getElementById(`${type}-items-grid`);
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200">
+                        <i class="fa-solid fa-magnifying-glass text-4xl text-slate-300 mb-3"></i>
+                        <h4 class="font-bold text-slate-700 text-base">No matching ${type} items found</h4>
+                        <p class="text-xs text-slate-400 mt-1">Try clearing filters or search with different keywords.</p>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = filtered.map(createItemCardHTML).join('');
+            }
+        }
+
+        // --- 5. ITEM DETAILS & VERIFICATION MODAL LOGIC ---
+        function openItemDetails(itemId) {
+            const item = state.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const isFound = item.type === 'FOUND';
+            const content = document.getElementById('modal-details-content');
+
+            content.innerHTML = `
+                <div class="relative h-64 sm:h-72 bg-slate-100">
+                    <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+                        ${item.type} ITEM
+                    </div>
+                </div>
+
+                <div class="p-6 sm:p-8 space-y-6">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded border border-brand-100">${item.category}</span>
+                            <span class="text-xs text-slate-400">ID: ${item.id}</span>
+                        </div>
+                        <h2 class="text-2xl font-extrabold text-slate-900">${item.title}</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80 text-xs text-slate-600">
+                        <div>
+                            <span class="text-slate-400 block font-semibold">Location:</span>
+                            <span class="font-bold text-slate-800">${item.location}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block font-semibold">Date Reported:</span>
+                            <span class="font-bold text-slate-800">${item.date}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block font-semibold">Color:</span>
+                            <span class="font-bold text-slate-800">${item.color || 'N/A'}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block font-semibold">Brand / Model:</span>
+                            <span class="font-bold text-slate-800">${item.brand || 'N/A'}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block font-semibold">Current Status:</span>
+                            <span class="font-bold text-brand-600">${item.status}</span>
+                        </div>
+                        ${isFound ? `
+                        <div>
+                            <span class="text-slate-400 block font-semibold">Storage Hub:</span>
+                            <span class="font-bold text-emerald-700">${item.storageLocation}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description</h4>
+                        <p class="text-sm text-slate-700 leading-relaxed">${item.description}</p>
+                    </div>
+
+                    <!-- Sensitivity Notice -->
+                    <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200/80 flex items-start gap-3 text-xs text-amber-800">
+                        <i class="fa-solid fa-shield-halved text-amber-600 text-lg mt-0.5"></i>
+                        <div>
+                            <span class="font-bold block text-amber-900 mb-0.5">Private Verification System Active</span>
+                            Sensitive unique marks are concealed publicly. You must pass verification before item handover.
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="pt-2 flex gap-3">
+                        ${isFound && item.status === 'REPORTED' ? `
+                            <button onclick="openClaimModal('${item.id}')" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl transition-all text-sm shadow-md flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-hand-holding-hand"></i>
+                                <span>This is Mine / Submit Claim</span>
+                            </button>
+                        ` : ''}
+                        
+                        ${!isFound && item.status === 'REPORTED' ? `
+                            <button onclick="showToast('Thank you! Contacting owner at ${item.reporterPhone}', 'info')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all text-sm shadow-md flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-phone"></i>
+                                <span>I Found This Item (Contact Owner)</span>
+                            </button>
+                        ` : ''}
+
+                        <button onclick="closeModal('modal-details')" class="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-100">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-details').classList.remove('hidden');
+        }
+
+        function openClaimModal(itemId) {
+            closeModal('modal-details');
+            const item = state.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('claim-item-id').value = item.id;
+            document.getElementById('claim-item-title-display').textContent = `Claiming: ${item.title} (${item.location})`;
+            document.getElementById('modal-claim').classList.remove('hidden');
+        }
+
+        function handleClaimSubmit(e) {
+            e.preventDefault();
+            const itemId = document.getElementById('claim-item-id').value;
+            const q1 = document.getElementById('claim-q1').value;
+            const q2 = document.getElementById('claim-q2').value;
+            const proof = document.getElementById('claim-proof').value;
+
+            // Update item status
+            const item = state.items.find(i => i.id === itemId);
+            if (item) {
+                item.status = 'CLAIMED';
+            }
+
+            // Push claim object
+            const newClaim = {
+                id: `claim-${Date.now()}`,
+                itemId: itemId,
+                claimantName: state.currentUser.name,
+                q1: q1,
+                q2: q2,
+                proof: proof || 'N/A',
+                status: 'PENDING',
+                date: new Date().toISOString().split('T')[0]
+            };
+            state.claims.push(newClaim);
+
+            // Add Notification
+            state.notifications.unshift({
+                id: Date.now(),
+                text: `Ownership claim for '${item?.title}' submitted successfully.`,
+                time: "Just now",
+                read: false
+            });
+
+            closeModal('modal-claim');
+            showToast('Verification claim submitted! Check My Dashboard for updates.');
+            renderHomePage();
+        }
+
+        // --- 6. REPORT SUBMISSION HANDLERS ---
+        function handleReportSubmit(e, type) {
+            e.preventDefault();
+            const form = e.target;
+            const inputs = form.querySelectorAll('input, select, textarea');
+
+            const newItem = {
+                id: `item-${Date.now().toString().slice(-4)}`,
+                type: type,
+                title: inputs[0].value,
+                category: inputs[1].value,
+                location: inputs[2].value,
+                date: inputs[3].value || new Date().toISOString().split('T')[0],
+                time: inputs[4]?.value || "12:00",
+                color: inputs[5]?.value || "",
+                brand: inputs[6]?.value || "",
+                description: inputs[7]?.value || "",
+                uniqueDetails: inputs[8]?.value || "",
+                storageLocation: type === 'FOUND' ? (inputs[3]?.value || "Campus Security Desk") : "N/A",
+                image: form.dataset.uploadedImg || "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80",
+                reporterName: state.currentUser.name,
+                reporterPhone: state.currentUser.phone || "+1 (555) 019-2834",
+                status: "REPORTED"
+            };
+
+            state.items.unshift(newItem);
+
+            showToast(`${type === 'LOST' ? 'Lost' : 'Found'} report submitted successfully!`);
+            form.reset();
+            
+            // Navigate to catalog
+            navigateTo(type.toLowerCase());
+        }
+
+        function handleImagePreview(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.classList.remove('hidden');
+                    preview.innerHTML = `<i class="fa-solid fa-file-image text-brand-600"></i> Photo attached: ${input.files[0].name}`;
+                    // Store mock base64/URL on form
+                    input.closest('form').dataset.uploadedImg = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- 7. DASHBOARD RENDERERS ---
+        function renderDashboardPage() {
+            const myLost = state.items.filter(i => i.reporterName === state.currentUser.name && i.type === 'LOST');
+            const myFound = state.items.filter(i => i.reporterName === state.currentUser.name && i.type === 'FOUND');
+            const myClaims = state.claims.filter(c => c.claimantName === state.currentUser.name);
+            const reunited = state.items.filter(i => i.reporterName === state.currentUser.name && i.status === 'REUNITED');
+
+            document.getElementById('dash-my-lost').textContent = myLost.length;
+            document.getElementById('dash-my-found').textContent = myFound.length;
+            document.getElementById('dash-my-claims').textContent = myClaims.length;
+            document.getElementById('dash-my-reunited').textContent = reunited.length;
+
+            // Render Submissions List
+            const activityContainer = document.getElementById('user-activity-list');
+            const mySubmissions = [...myLost, ...myFound];
+
+            if (mySubmissions.length === 0) {
+                activityContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No reports filed yet.</p>`;
+            } else {
+                activityContainer.innerHTML = mySubmissions.map(item => `
+                    <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                        <div class="flex items-center gap-3">
+                            <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800">${item.title}</h4>
+                                <span class="text-[10px] text-slate-400">${item.type} • ${item.date} • ${item.location}</span>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full ${item.status === 'REUNITED' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'} uppercase">
+                            ${item.status}
+                        </span>
+                    </div>
+                `).join('');
+            }
+
+            // Render Claims List
+            const claimsContainer = document.getElementById('user-claims-list');
+            if (myClaims.length === 0) {
+                claimsContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">No active claims.</p>`;
+            } else {
+                claimsContainer.innerHTML = myClaims.map(claim => {
+                    const item = state.items.find(i => i.id === claim.itemId);
+                    return `
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                            <div class="font-bold text-slate-800">${item ? item.title : 'Item Claim'}</div>
+                            <div class="text-[10px] text-slate-400">Filed: ${claim.date}</div>
+                            <div class="mt-2 flex items-center justify-between">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded ${claim.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} uppercase">
+                                    ${claim.status}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // --- 8. ADMIN DASHBOARD & VERIFICATION QUEUE ---
+        function renderAdminPage() {
+            const lostCount = state.items.filter(i => i.type === 'LOST').length;
+            const foundCount = state.items.filter(i => i.type === 'FOUND').length;
+            const reunitedCount = state.items.filter(i => i.status === 'REUNITED').length;
+            const pendingClaims = state.claims.filter(c => c.status === 'PENDING').length;
+
+            document.getElementById('admin-stat-lost').textContent = lostCount;
+            document.getElementById('admin-stat-found').textContent = foundCount;
+            document.getElementById('admin-stat-reunited').textContent = reunitedCount;
+            document.getElementById('admin-stat-claims').textContent = pendingClaims;
+
+            // Render Claims Review Queue
+            const claimsQueue = document.getElementById('admin-claims-container');
+            const pending = state.claims.filter(c => c.status === 'PENDING');
+
+            if (pending.length === 0) {
+                claimsQueue.innerHTML = `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">No pending claims requiring review right now.</div>`;
+            } else {
+                claimsQueue.innerHTML = pending.map(claim => {
+                    const item = state.items.find(i => i.id === claim.itemId);
+                    return `
+                        <div class="bg-purple-50/50 p-4 rounded-xl border border-purple-200/80 space-y-3">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <span class="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded uppercase">Claim ID: ${claim.id}</span>
+                                    <h4 class="font-bold text-slate-900 text-sm mt-1">Claimant: ${claim.claimantName} → Item: ${item ? item.title : 'N/A'}</h4>
+                                </div>
+                                <span class="text-xs text-slate-400">${claim.date}</span>
+                            </div>
+
+                            <div class="bg-white p-3 rounded-lg border border-purple-100 text-xs space-y-1">
+                                <div><strong class="text-slate-700">Q1 Answer (Contents):</strong> ${claim.q1}</div>
+                                <div><strong class="text-slate-700">Q2 Answer (Inner Marks):</strong> ${claim.q2}</div>
+                                <div><strong class="text-slate-700">Actual Secret Details:</strong> <span class="text-amber-700 font-medium">${item ? item.uniqueDetails : 'N/A'}</span></div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="reviewClaim('${claim.id}', 'APPROVED')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
+                                    <i class="fa-solid fa-check mr-1"></i> Approve & Verify
+                                </button>
+                                <button onclick="reviewClaim('${claim.id}', 'REJECTED')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
+                                    <i class="fa-solid fa-xmark mr-1"></i> Reject
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render Table
+            const tbody = document.getElementById('admin-table-body');
+            tbody.innerHTML = state.items.map(item => `
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${item.image}" class="w-9 h-9 rounded-lg object-cover">
+                            <div>
+                                <div class="font-bold text-slate-800">${item.title}</div>
+                                <div class="text-[10px] text-slate-400">Reporter: ${item.reporterName}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4 font-bold ${item.type === 'LOST' ? 'text-amber-600' : 'text-emerald-600'} text-xs">${item.type}</td>
+                    <td class="p-4 text-xs">${item.category}</td>
+                    <td class="p-4 text-xs">${item.location}</td>
+                    <td class="p-4">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${item.status === 'REUNITED' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'} uppercase">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right space-x-1">
+                        ${item.status !== 'REUNITED' ? `
+                            <button onclick="adminMarkReunited('${item.id}')" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-lg">Mark Reunited</button>
+                        ` : ''}
+                        <button onclick="adminDeleteItem('${item.id}')" class="text-xs text-rose-600 hover:bg-rose-50 p-1 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function reviewClaim(claimId, status) {
+            const claim = state.claims.find(c => c.id === claimId);
+            if (!claim) return;
+
+            claim.status = status;
+            const item = state.items.find(i => i.id === claim.itemId);
+
+            if (status === 'APPROVED') {
+                if (item) item.status = 'REUNITED';
+                showToast(`Claim approved! Item status marked REUNITED.`);
+            } else {
+                if (item) item.status = 'REPORTED';
+                showToast(`Claim rejected.`, 'error');
+            }
+
+            renderAdminPage();
+        }
+
+        function adminMarkReunited(itemId) {
+            const item = state.items.find(i => i.id === itemId);
+            if (item) {
+                item.status = 'REUNITED';
+                showToast(`Item '${item.title}' marked as Reunited!`);
+                renderAdminPage();
+            }
+        }
+
+        function adminDeleteItem(itemId) {
+            state.items = state.items.filter(i => i.id !== itemId);
+            showToast('Report removed from system.');
+            renderAdminPage();
+        }
+
+        function seedSampleData() {
+            showToast('Database reset to default campus items.', 'info');
+            renderHomePage();
+        }
+
+        // --- 9. AUTH MODAL CONTROLLERS ---
+        function openAuthModal(mode) {
+            switchAuthTab(mode);
+            document.getElementById('modal-auth').classList.remove('hidden');
+        }
+
+        function switchAuthTab(mode) {
+            const loginForm = document.getElementById('form-login');
+            const regForm = document.getElementById('form-register');
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-register');
+
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                tabLogin.className = "flex-1 py-4 font-bold text-sm text-center border-b-2 border-brand-600 text-brand-600";
+                tabReg.className = "flex-1 py-4 font-bold text-sm text-center border-b-2 border-transparent text-slate-400";
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabReg.className = "flex-1 py-4 font-bold text-sm text-center border-b-2 border-brand-600 text-brand-600";
+                tabLogin.className = "flex-1 py-4 font-bold text-sm text-center border-b-2 border-transparent text-slate-400";
+            }
+        }
+
+        function handleAuthLogin(e) {
+            e.preventDefault();
+            closeModal('modal-auth');
+            showToast(`Logged in as Junaira (CS202488)`);
+            updateAuthUI();
+        }
+
+        function handleAuthRegister(e) {
+            e.preventDefault();
+            closeModal('modal-auth');
+            showToast(`Student registration successful! Welcome to ReuniteU.`);
+            updateAuthUI();
+        }
+
+        function updateAuthUI() {
+            const container = document.getElementById('auth-btn-container');
+            container.innerHTML = `
+                <button onclick="navigateTo('dashboard')" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3 py-2 rounded-xl transition-colors">
+                    <i class="fa-solid fa-user-graduate text-brand-600"></i>
+                    <span>Junaira</span>
+                </button>
+            `;
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // --- 10. INITIALIZATION ON WINDOW LOAD ---
+        window.onload = function() {
+            renderHomePage();
+            renderNotifications();
+            updateAuthUI();
+        };
+    </script>
+</body>
+</html>
